@@ -1,0 +1,6 @@
+{
+    "sketch": "myroom\\app.ino",
+    "board": "arduino:avr:pro",
+    "port": "COM4",
+    "configuration": "cpu=16MHzatmega328"
+}
