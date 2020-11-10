@@ -8,18 +8,15 @@
 
 #define DHTPIN 3
 #define DHTTYPE DHT11
+#define DUST_PIN 9
 
 unsigned long lowpulseoccupancy = 0;
 float ratio = 0;
-const int DUST_PIN = 9;
 float humi = 0;
 float temp = 0;
 int dustDensity =0;
 int dust_level = 0;
 WifiUtil wifi(4,5);
-char data[80];
-int A = 0;
-char windowState = 0;
 
 SoftwareSerial softSerial(4, 5); //RX, TX
 
@@ -42,14 +39,12 @@ void callback(char* topic, byte* payload, unsigned int length){
     //strcmp c언어떄 문자열배열을 비교할때 사용
     //0이 리턴되면 두 문자열이 같다는 뜻
     
-    if(strcmp("LED_ON", message)==0){
-        digitalWrite(13,HIGH);
-        A = 1;
-    }
-    else if(strcmp("LED_OFF", message)==0){
-        digitalWrite(13,LOW);
-        A = 2;
-    }
+    // if(strcmp("LED_ON", message)==0){
+    //     digitalWrite(13,HIGH);
+    // }
+    // else if(strcmp("LED_OFF", message)==0){
+    //     digitalWrite(13,LOW);
+    // }
 //    Serial.print(topic);
 //    Serial.print(" : ");
     Serial.println(message);
@@ -69,7 +64,7 @@ void reconnect(){
         //아닐경우 EEPROM에다가 번호등록가능 보통은 시리얼번호 사용
             Serial.println("connected");
             //subscriber로 등록
-            client.subscribe("inner/#"); //구독 신청
+            //client.subscribe("living/#"); //구독 신청
         }
         else{
 //            Serial.print("failed, rc=");
@@ -89,7 +84,7 @@ void publish_DHT(){
 
     root.printTo(msg);
     //토픽 발행
-    client.publish("inner/DHT/info", msg);
+    client.publish("living/DHT/info", msg);
 }
 void publish_dust(){
     
@@ -101,22 +96,22 @@ void publish_dust(){
 
     root.printTo(msg);
     //토픽 발행
-    client.publish("inner/dust/info",msg);
+    client.publish("living/dust/info",msg);
 }
 
-void publish2(){
-  String value = "\"h\": " + String(humi) ;
-  String value2 = ", \"t\": " + String(temp) ;
+// void publish2(){
+//   String value = "\"h\": " + String(humi) ;
+//   String value2 = ", \"t\": " + String(temp) ;
  
- // Add both value together to send as one string. 
-  value = value + value2;
+//  // Add both value together to send as one string. 
+//   value = value + value2;
   
   
-  // This sends off your payload. 
-  String payload = "{" + value +"}";
-  payload.toCharArray(data, (payload.length() + 1));
-  client.publish("inner/DHT/info", data);
-}
+//   // This sends off your payload. 
+//   String payload = "{" + value +"}";
+//   payload.toCharArray(data, (payload.length() + 1));
+//   client.publish("inner/DHT/info", data);
+// }
 void setup() {
 
   Serial.begin(9600);
@@ -126,7 +121,7 @@ void setup() {
   pinMode(DUST_PIN, INPUT);
   pinMode(13,OUTPUT);
 
-  //com.setInterval(1100,mainwork);
+  com.setInterval(2000,publish);
   
 }
 void loop() {
@@ -134,29 +129,19 @@ void loop() {
   if(!client.connected()){//재접속 검사
          reconnect();
     }
-  delay(100);
-  if(!client.loop()){
-    delay(100);
-  }  
-  A = I(A);
-  //com.run();
-  
+  com.run();
 }
-int I(int A){
-  if (A==1){
-    publish_DHT();
-  }
-  else if(A==2){
-    publish_dust();
-  }
-  return 0;
-}
+
 void mainwork(){
   work();
   dust_check();
-  //publish_DHT();
-  //publish_dust();
 }
+
+void publish(){
+    publish_DHT();
+    publish_dust();
+}
+
 void work(){
   float h = 0;
   float t = 0;
@@ -168,19 +153,20 @@ void work(){
 
 void dust_check() {
   unsigned long duration = pulseIn(DUST_PIN, LOW);
-  lowpulseoccupancy += duration;
-  char DustCalculate_RUN = false;
-  char DustCalculate_Done = true;
-  // Integer percentage 0=>100
-  ratio = lowpulseoccupancy / (3000 * 10.0);
-  float concentration = 1.1 * pow(ratio, 3) - 3.8 * pow(ratio, 2) +520 * ratio + 0.62; // using spec sheet curve
-  if(concentration * 100 / 13000 != 0){
-    dustDensity = concentration * 100 / 13000;
+  if(duration){
+    lowpulseoccupancy += duration;
+    char DustCalculate_RUN = false;
+    char DustCalculate_Done = true;
+    // Integer percentage 0=>100
+    ratio = lowpulseoccupancy / (3000 * 10.0);
+    float concentration = 1.1 * pow(ratio, 3) - 3.8 * pow(ratio, 2) +520 * ratio + 0.62; // using spec sheet curve
+    if(concentration * 100 / 13000 != 0){
+      dustDensity = concentration * 100 / 13000;
+    }
   }
   lowpulseoccupancy = 0;
   if(dustDensity > 150) dust_level = 3;
   else if(dustDensity > 80) dust_level = 2;
   else if(dustDensity > 30) dust_level = 1;
   else dust_level = 0;
-
 }

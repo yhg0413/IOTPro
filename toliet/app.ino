@@ -97,7 +97,7 @@ void reconnect(){
         //아닐경우 EEPROM에다가 번호등록가능 보통은 시리얼번호 사용
             Serial.println("connected");
             //subscriber로 등록
-            client.subscribe("toliet/+/info",1); //구독 신청
+            //client.subscribe("toliet/+/info",1); //구독 신청
         }
         else{
             Serial.print("failed, rc=");

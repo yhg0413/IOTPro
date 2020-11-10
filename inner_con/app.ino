@@ -8,12 +8,17 @@
 
 WifiUtil wifi(4,5);
 
-char windowState = 0;
+char innerwindowState = 0;
+char livingwindowState = 0;
+char doorState = 0;
 
 SimpleTimer timer;
-PWMServo servoMotor;
+PWMServo innerWindow;
+PWMServo livingWindow;
+PWMServo door;
 AltSoftSerial softSerial(4, 5); //RX, TX
 int I = 1;
+int start = 0;
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
 const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
@@ -31,22 +36,23 @@ void callback(char* topic, byte* payload, unsigned int length){
     //strcmp c언어떄 문자열배열을 비교할때 사용
     //0이 리턴되면 두 문자열이 같다는 뜻
     
-    if(strcmp("LED_ON", message)==0){
-        digitalWrite(13,HIGH);
-    }
-    else if(strcmp("LED_OFF", message)==0){
-        digitalWrite(13,LOW);
-       
-    }
-    else if(strcmp("WINDOW_OPEN", message)==0){
-        servoMotor.write(180);
-        windowState = 1;
+    if(strcmp("WINDOW_OPEN", message)==0){
+        if(strcmp("inner/Window/info",topic)==0){innerWindow.write(180);I=1;innerwindowState = 1;}
+        else if(strcmp("living/Window/info",topic)==0){livingWindow.write(180);I=2;livingwindowState = 1;}
+        else if(strcmp("door/info",topic)==0){door.write(180);I=3;doorState = 1;}
+        
       
     }
     else if(strcmp("WINDOW_CLOSE", message)==0){
-        servoMotor.write(100);
-        windowState = 0;
+        if(strcmp("inner/Window/info",topic)==0){innerWindow.write(100);I=1;innerwindowState = 0;}
+        else if(strcmp("living/Window/info",topic)==0){livingWindow.write(100);I=2;livingwindowState = 0;}
+        else if(strcmp("door/info",topic)==0){door.write(100);I=3;doorState = 0;}   
     }
+    else if(strcmp("All_State", message)==0){
+        start = 0;
+    }
+
+
     Serial.print(topic);
     Serial.print(" : ");
     Serial.println(message);
@@ -68,7 +74,7 @@ void reconnect(){
         //아닐경우 EEPROM에다가 번호등록가능 보통은 시리얼번호 사용
             Serial.println("connected");
             //subscriber로 등록
-        //    client.subscribe("inner/+/info",1); //구독 신청
+            client.subscribe("+/+/info",1); //구독 신청
         }
         else{
             Serial.print("failed, rc=");
@@ -96,74 +102,51 @@ void publish_Window(){
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root["WS"] = windowState;
+    if(I==1)root["WS"] = innerwindowState;
+    else if(I==2)root["WS"] = livingwindowState;
+    else if(I==3)root["WS"] = doorState;
 
     Serial.print("Json data : ");
     
     root.printTo(msg);
     Serial.println(msg);
     //토픽 발행
-    client.publish("inner/Window", msg);
+    if(I==1)client.publish("inner/Window", msg);
+    else if(I==2)client.publish("living/Window", msg);
+    else if(I==3)client.publish("door", msg);
 }
-void publish_Led(){
-    char msg[15];
-    StaticJsonBuffer<15> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-
-    root["LS"] = digitalRead(13);
-
-    Serial.print("Json data : ");
-    
-    root.printTo(msg);
-    Serial.println(msg);
-    //토픽 발행
-    client.publish("inner/Led", msg);
-}
-void publish_Rain(){
-    char msg[15];
-    StaticJsonBuffer<15> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-
-    root["RS"] = digitalRead(10);
-
-    Serial.print("Json data : ");
-    
-    root.printTo(msg);
-    Serial.println(msg);
-    //토픽 발행
-    client.publish("inner/Rain", msg);
-}
-
-void publish(){
-    if(I==1)publish_Led();
-    else if(I==2)publish_Rain();
-    else if(I==3){publish_Window();I=0;}
-    I++;
-}
-void work(){
-     int Rainstate = digitalRead(10);
-     if (Rainstate == 0 && windowState == 1){
-      servoMotor.write(90);
-      windowState = 0;
-     }
-}
-
 
 void setup(){
     Serial.begin(9600);
     wifi.init(ssid,password);
     mqtt_init();
-    servoMotor.attach(9);
-    pinMode(13,OUTPUT);
-    timer.setInterval(3000,publish);
-    //timer.setInterval(3000,work);
+    innerWindow.attach(9);
+    livingWindow.attach(10);
+    door.attach(11);
+    innerWindow.write(100);
+    livingWindow.write(100);
+    doorWindow.write(100);
 }
 
 
 void loop(){
+    
     if(!client.connected()){//재접속 검사
          reconnect();
     }
-    //client.loop();//메시지가 있는지 검사 수신이 있는가
-    timer.run();
+    if(start==0){
+        publish_Window();
+        I++;
+        if(I==4){
+            start =1;
+            I = 0;
+        }
+    }
+    else{
+        client.loop();//메시지가 있는지 검사 수신이 있는가
+        if(I==1){publish_Window(); I=0;}
+        else if(I==2){publish_Window(); I=0;}
+        else if(I==3){publish_Window(); I=0;}
+    }
+    
 }

@@ -2,25 +2,27 @@
 #include <SimpleTimer.h>
 #include <WifiUtil.h>
 #include <AltSoftSerial.h>
-#include <PWMServo.h>
 #include <ArduinoJson.h>
 
-
+#define gasPin A0
+#define firePin A1
+#define ledPin 13
 WifiUtil wifi(4,5);
 
 char windowState = 0;
 
 SimpleTimer timer;
-PWMServo servoMotor;
 AltSoftSerial softSerial(4, 5); //RX, TX
-int I = 1;
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
 const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
 
-//MQTT용 WiFi 클라이언트 객체초기화
 WiFiEspClient espClient;
 PubSubClient client(espClient);
+
+int GasValue; // gas라는 정수의 값을 설정합니다.
+
+int FireValue = 0;
 
 void callback(char* topic, byte* payload, unsigned int length){
     /*payload[length] = NULL;
@@ -38,15 +40,7 @@ void callback(char* topic, byte* payload, unsigned int length){
         digitalWrite(13,LOW);
        
     }
-    else if(strcmp("WINDOW_OPEN", message)==0){
-        servoMotor.write(180);
-        windowState = 1;
-      
-    }
-    else if(strcmp("WINDOW_CLOSE", message)==0){
-        servoMotor.write(100);
-        windowState = 0;
-    }
+
     Serial.print(topic);
     Serial.print(" : ");
     Serial.println(message);
@@ -64,7 +58,7 @@ void reconnect(){
     while(!client.connected()){
         Serial.print("Attempting MQTT connection...");
                         
-        if(client.connect("IoT3_inner")){//ID를 다르게 등록할경우 보통 장치의 시리얼번호를 사용
+        if(client.connect("IoT3_kitchen")){//ID를 다르게 등록할경우 보통 장치의 시리얼번호를 사용
         //아닐경우 EEPROM에다가 번호등록가능 보통은 시리얼번호 사용
             Serial.println("connected");
             //subscriber로 등록
@@ -78,92 +72,69 @@ void reconnect(){
         }
     }
 }
-// void publish_Light(){
-//     int state = !digitalRead(13);
-//     char message[10];
-//     sprintf(message, "%d", state);
+void gasCheck(){
+    GasValue = analogRead(gasPin); //gasvalue는 gaspin의 값을 읽어옵니다.
+    if (GasValue >= 500) //500보다 크거나 같을시에
+    {
+        digitalWrite(ledPin, HIGH); //LED의 빛이 나옵니다.
+    }
+    else
+    {
+        digitalWrite(ledPin, LOW); // 작을시에는 꺼집니다.
+    }
+    Serial.print("GasValue=");
+    Serial.println(GasValue);
+}
+void fireCheck(){
+    FireValue = analogRead(firePin);
+    if(FireValue<=1000){
+        digitalWrite(ledPin,HIGH);
+    }
+    else{
+        digitalWrite(ledPin, LOW);
+    }
+    Serial.print("analog Value : ");
+    Serial.println(FireValue);
+}
 
-//     //토픽 발행
-//     client.publish("IoT3/home/living/Light/info", message);
-// }
-// void publish_Window(){
-//     char message[10];
-//     sprintf(message, "%d", windowState);
-//     client.publish("IoT3/home/living/Window/ifno", message);
-// }
-void publish_Window(){
+void publish_Gas(){
     char msg[15];
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
+    root["Gas"]= GasValue;
 
-    root["WS"] = windowState;
-
-    Serial.print("Json data : ");
-    
     root.printTo(msg);
-    Serial.println(msg);
     //토픽 발행
-    client.publish("inner/Window", msg);
+    client.publish("kitchen/Gas/", msg);
 }
-void publish_Led(){
+void publish_Fire(){
     char msg[15];
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
+    root["Fire"] = FireValue;
 
-    root["LS"] = digitalRead(13);
-
-    Serial.print("Json data : ");
-    
     root.printTo(msg);
-    Serial.println(msg);
     //토픽 발행
-    client.publish("inner/Led", msg);
+    client.publish("kitchen/Fire/",msg);
 }
-void publish_Rain(){
-    char msg[15];
-    StaticJsonBuffer<15> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-
-    root["RS"] = digitalRead(10);
-
-    Serial.print("Json data : ");
-    
-    root.printTo(msg);
-    Serial.println(msg);
-    //토픽 발행
-    client.publish("inner/Rain", msg);
-}
-
 void publish(){
-    if(I==1)publish_Led();
-    else if(I==2)publish_Rain();
-    else if(I==3){publish_Window();I=0;}
-    I++;
+    publish_Fire();
+    publish_Gas();
 }
-void work(){
-     int Rainstate = digitalRead(10);
-     if (Rainstate == 0 && windowState == 1){
-      servoMotor.write(90);
-      windowState = 0;
-     }
-}
-
-
-void setup(){
-    Serial.begin(9600);
+void setup()
+{
+    Serial.begin(9600); //serial포트를 시작하고
     wifi.init(ssid,password);
     mqtt_init();
-    servoMotor.attach(9);
-    pinMode(13,OUTPUT);
-    timer.setInterval(3000,publish);
-    //timer.setInterval(3000,work);
+    pinMode(ledPin, OUTPUT); //핀의 LED를 빛을 내주는 OUTPUT의 단자로 활용합니다.
+    timer.setInterval(2000,publish);
 }
 
-
 void loop(){
+    gasCheck();
+    fireCheck();
     if(!client.connected()){//재접속 검사
          reconnect();
     }
-    //client.loop();//메시지가 있는지 검사 수신이 있는가
     timer.run();
 }
