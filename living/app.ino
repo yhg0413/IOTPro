@@ -95,7 +95,7 @@ void publish_dust(){
     char msg[25];
     StaticJsonBuffer<25> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
-    root["dD"] = dustDensity;
+    root["dd"] = dustDensity;
     root["dl"] = dust_level;
 
     root.printTo(msg);

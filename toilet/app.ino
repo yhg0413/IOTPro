@@ -116,14 +116,14 @@ void publish_water(){
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root["wat_S"] = waterState;
+    root["wat_s"] = waterState;
 
     Serial.print("Json data : ");
     
     root.printTo(msg);
     //Serial.println(msg);
     //토픽 발행
-    client.publish("iot3/toilet/waterSensor/", msg);
+    client.publish("iot3/toilet/water/", msg);
 }
 void publish_PIR(){
     char msg[15];
@@ -131,7 +131,7 @@ void publish_PIR(){
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
     A = (PIRState!=0);
-    root["PIR_S"] = A;
+    root["pir_s"] = A;
 
     Serial.print("Json data : ");
     
@@ -146,7 +146,7 @@ void publish_vib(){
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
     A = (vibState!=0);
-    root["vib_S"] = A;
+    root["vib_s"] = A;
 
     Serial.print("Json data : ");
     

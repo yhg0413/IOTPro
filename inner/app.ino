@@ -8,10 +8,8 @@
 
 WifiUtil wifi(4,5);
 
-char windowState = 0;
 
 SimpleTimer timer;
-PWMServo servoMotor;
 AltSoftSerial softSerial(4, 5); //RX, TX
 int I = 1;
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
@@ -31,13 +29,9 @@ void callback(char* topic, byte* payload, unsigned int length){
     //strcmp c언어떄 문자열배열을 비교할때 사용
     //0이 리턴되면 두 문자열이 같다는 뜻
     
-    if(strcmp("LED_ON", message)==0){
-        digitalWrite(13,HIGH);
-    }
-    else if(strcmp("LED_OFF", message)==0){
-        digitalWrite(13,LOW);
-       
-    }
+    // if(strcmp("LED_ON", message)==0){
+    //     digitalWrite(13,HIGH);
+    // }
 
     Serial.print(topic);
     Serial.print(" : ");
@@ -97,7 +91,7 @@ void publish_Rain(){
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root["RS"] = digitalRead(10);
+    root["rs"] = digitalRead(10);
 
     Serial.print("Json data : ");
     
@@ -117,10 +111,9 @@ void setup(){
     Serial.begin(9600);
     wifi.init(ssid,password);
     mqtt_init();
-    servoMotor.attach(9);
     pinMode(13,OUTPUT);
+    pinMode(10,INPUT);
     timer.setInterval(1500,publish);
-    //timer.setInterval(3000,work);
 }
 
 
@@ -128,6 +121,5 @@ void loop(){
     if(!client.connected()){//재접속 검사
          reconnect();
     }
-    //client.loop();//메시지가 있는지 검사 수신이 있는가
     timer.run();
 }

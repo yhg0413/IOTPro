@@ -130,10 +130,10 @@ void publish_Window(){
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    if(I==1)root["WS"] = innerwindowState;
-    else if(I==2)root["WS"] = livingwindowState;
-    else if(I==3)root["WS"] = doorState;
-    else if(I==4)root["LED"] = LEDState;
+    if(I==1)root["ws"] = innerwindowState;
+    else if(I==2)root["ws"] = livingwindowState;
+    else if(I==3)root["door"] = doorState;
+    else if(I==4)root["led"] = LEDState;
     Serial.print("Json data : ");
     
     root.printTo(msg);
