@@ -4,17 +4,19 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 
-#define PIDpin 7
-#define bivepin 8
+#define PIRpin 7
+#define vibpin 8
 #define FLOWSENSORPIN 9   
 WifiUtil wifi(4,5);
 
 char waterState = 0;
-int BiveState = 0;
-int PIDState = 0;
-    
+int vibState = 0;
+int PIRState = 0;
+int I = 0;
+int time1 = 0;
+int time2 = 0;
 SimpleTimer timer;
-SoftwareSeria softSerial(4, 5); //RX, TX
+SoftwareSerial softSerial(4, 5); //RX, TX
 
 
 
@@ -65,20 +67,9 @@ void callback(char* topic, byte* payload, unsigned int length){
     //strcmp c언어떄 문자열배열을 비교할때 사용
     //0이 리턴되면 두 문자열이 같다는 뜻
     
-    if(strcmp("LED_ON", message)==0){
-        digitalWrite(13,HIGH);
-    }
-    else if(strcmp("LED_OFF", message)==0){
-        digitalWrite(13,LOW);
-       
-    }
-    else if(strcmp("WINDOW_OPEN", message)==0){
-    }
-    else if(strcmp("WINDOW_CLOSE", message)==0){
-    }
-    Serial.print(topic);
-    Serial.print(" : ");
-    Serial.println(message);
+    //Serial.print(topic);
+    //Serial.print(" : ");
+    //Serial.println(message);
     
 }
 
@@ -93,15 +84,15 @@ void reconnect(){
     while(!client.connected()){
         Serial.print("Attempting MQTT connection...");
                         
-        if(client.connect("IoT3_living")){//ID를 다르게 등록할경우 보통 장치의 시리얼번호를 사용
+        if(client.connect("IoT3_toliet")){//ID를 다르게 등록할경우 보통 장치의 시리얼번호를 사용
         //아닐경우 EEPROM에다가 번호등록가능 보통은 시리얼번호 사용
             Serial.println("connected");
             //subscriber로 등록
             //client.subscribe("toliet/+/info",1); //구독 신청
         }
         else{
-            Serial.print("failed, rc=");
-            Serial.print(client.state());
+            //Serial.print("failed, rc=");
+            //Serial.print(client.state());
             Serial.println(" try again in 5 seconds");
             delay(5000);
         }
@@ -120,38 +111,73 @@ void reconnect(){
 //     sprintf(message, "%d", windowState);
 //     client.publish("IoT3/home/living/Window/ifno", message);
 // }
-void publish(){
-    char msg[50];
-    StaticJsonBuffer<50> jsonBuffer;
+void publish_water(){
+    char msg[15];
+    StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root["waterState"] = waterState;
-    root["PIDState"] = PIDState;
-    root["BiveState"] = BiveState;
+    root["wat_S"] = waterState;
 
     Serial.print("Json data : ");
     
     root.printTo(msg);
-    Serial.println(msg);
+    //Serial.println(msg);
     //토픽 발행
-    client.publish("toliet/", msg);
+    client.publish("iot3/toilet/waterSensor/", msg);
+}
+void publish_PIR(){
+    char msg[15];
+    int A=0;
+    StaticJsonBuffer<15> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    A = (PIRState!=0);
+    root["PIR_S"] = A;
+
+    Serial.print("Json data : ");
+    
+    root.printTo(msg);
+    //Serial.println(msg);
+    //토픽 발행
+    client.publish("iot3/toilet/PIR/", msg);
+}
+void publish_vib(){
+    char msg[15];
+    int A=0;
+    StaticJsonBuffer<15> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    A = (vibState!=0);
+    root["vib_S"] = A;
+
+    Serial.print("Json data : ");
+    
+    root.printTo(msg);
+    //Serial.println(msg);
+    //토픽 발행
+    client.publish("iot3/toilet/vib/", msg);
 }
 
-
-void work(){
-    int i = 0;
-    int P = 0;
-    int bive =0;
-    BiveState = 0;
-    for(i = 0; i< 100; i++){
-      P = digitalRead(bivepin);
-      bive += P;
-      if(bive-1 == i){
-        BiveState = 1;
-      } 
-    }
+void publish(){
+  I++;
+  if(I==1){
+    publish_PIR();
+  }
+  else if(I==2){
+    publish_vib();
+  }
+  else if(I==3){
+    publish_water();
+    I=0;
+  }
 }
+
 void check(){
+  
+  if(time1){time1 -=1;}
+  else vibState=0;
+
+  if(time2){time2 -=1;}
+  else {PIRState=0;}
+
   if (pulses2 != pulses){
       pulses2 = pulses;
       waterState = 1;
@@ -167,21 +193,24 @@ void setup(){
     wifi.init(ssid,password);
     mqtt_init();
     pinMode(13,OUTPUT);
-    pinMode(bivepin,INPUT);
-    pinMode(PIDpin,INPUT);
+    pinMode(vibpin,INPUT);
+    pinMode(PIRpin,INPUT);
     pinMode(FLOWSENSORPIN,INPUT);
     digitalWrite(FLOWSENSORPIN,1);
     useInterrupt(true);
     timer.setInterval(2000,publish);
-    timer.setInterval(5000,check);
+    timer.setInterval(1951,check);
 }
 
 
 void loop(){
+    
+    if(digitalRead(vibpin)){vibState=1;time1=10;}
+    if(digitalRead(PIRpin)){PIRState=1; time2=10;}
     if(!client.connected()){//재접속 검사
          reconnect();
     }
-    client.loop();//메시지가 있는지 검사 수신이 있는가
-    PIDState=digitalRead(PIDpin);
+    //client.loop();//메시지가 있는지 검사 수신이 있는가
+    
     timer.run();
 }

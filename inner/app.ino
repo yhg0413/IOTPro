@@ -38,15 +38,7 @@ void callback(char* topic, byte* payload, unsigned int length){
         digitalWrite(13,LOW);
        
     }
-    else if(strcmp("WINDOW_OPEN", message)==0){
-        servoMotor.write(180);
-        windowState = 1;
-      
-    }
-    else if(strcmp("WINDOW_CLOSE", message)==0){
-        servoMotor.write(100);
-        windowState = 0;
-    }
+
     Serial.print(topic);
     Serial.print(" : ");
     Serial.println(message);
@@ -91,33 +83,14 @@ void reconnect(){
 //     sprintf(message, "%d", windowState);
 //     client.publish("IoT3/home/living/Window/ifno", message);
 // }
-void publish_Window(){
+void publish_Arduino_Rain(){
     char msg[15];
-    StaticJsonBuffer<15> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
 
-    root["WS"] = windowState;
-
-    Serial.print("Json data : ");
+    sprintf(msg, "%d", digitalRead(10));
     
-    root.printTo(msg);
     Serial.println(msg);
     //토픽 발행
-    client.publish("inner/Window", msg);
-}
-void publish_Led(){
-    char msg[15];
-    StaticJsonBuffer<15> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-
-    root["LS"] = digitalRead(13);
-
-    Serial.print("Json data : ");
-    
-    root.printTo(msg);
-    Serial.println(msg);
-    //토픽 발행
-    client.publish("inner/Led", msg);
+    client.publish("iot3/inner/ArduRain/info/", msg);
 }
 void publish_Rain(){
     char msg[15];
@@ -131,23 +104,14 @@ void publish_Rain(){
     root.printTo(msg);
     Serial.println(msg);
     //토픽 발행
-    client.publish("inner/Rain", msg);
+    client.publish("iot3/inner/Rain/", msg);
 }
 
 void publish(){
-    if(I==1)publish_Led();
-    else if(I==2)publish_Rain();
-    else if(I==3){publish_Window();I=0;}
+    if(I==1)publish_Arduino_Rain();
+    else if(I==2){publish_Rain();I=0;}
     I++;
 }
-void work(){
-     int Rainstate = digitalRead(10);
-     if (Rainstate == 0 && windowState == 1){
-      servoMotor.write(90);
-      windowState = 0;
-     }
-}
-
 
 void setup(){
     Serial.begin(9600);
@@ -155,7 +119,7 @@ void setup(){
     mqtt_init();
     servoMotor.attach(9);
     pinMode(13,OUTPUT);
-    timer.setInterval(3000,publish);
+    timer.setInterval(1500,publish);
     //timer.setInterval(3000,work);
 }
 

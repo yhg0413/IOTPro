@@ -1,7 +1,6 @@
 #include <PubSubClient.h>
-#include <SimpleTimer.h>
 #include <WifiUtil.h>
-#include <SoftwareSerial.h>
+#include <AltSoftSerial.h>
 #include <ArduinoJson.h>
 #include <MiniCom.h>
 #include <DHT.h>
@@ -10,6 +9,7 @@
 #define DHTTYPE DHT11
 #define DUST_PIN 9
 
+int I=1;
 unsigned long lowpulseoccupancy = 0;
 float ratio = 0;
 float humi = 0;
@@ -18,7 +18,7 @@ int dustDensity =0;
 int dust_level = 0;
 WifiUtil wifi(4,5);
 
-SoftwareSerial softSerial(4, 5); //RX, TX
+AltSoftSerial softSerial(4, 5); //RX, TX
 
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
@@ -60,7 +60,7 @@ void reconnect(){
     while(!client.connected()){
 //        Serial.print("Attempting MQTT connection...");
                         
-        if(client.connect("IoT3_Inner")){//ID를 다르게 등록할경우 보통 장치의 시리얼번호를 사용
+        if(client.connect("IoT3_living")){//ID를 다르게 등록할경우 보통 장치의 시리얼번호를 사용
         //아닐경우 EEPROM에다가 번호등록가능 보통은 시리얼번호 사용
             Serial.println("connected");
             //subscriber로 등록
@@ -76,7 +76,7 @@ void reconnect(){
 }
 
 void publish_DHT(){
-    char msg[50];
+    char msg[25];
     StaticJsonBuffer<25> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
     root["hu"]= humi;
@@ -84,11 +84,15 @@ void publish_DHT(){
 
     root.printTo(msg);
     //토픽 발행
-    client.publish("living/DHT/info", msg);
+    client.publish("iot3/living/DHT/", msg);
+}
+
+void LCD(){
+  com.print(0,"humi",humi,"temp",temp);
+  com.print(1,"d_D",dustDensity,"d_l",dust_level);
 }
 void publish_dust(){
-    
-    char msg[50];
+    char msg[25];
     StaticJsonBuffer<25> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
     root["dD"] = dustDensity;
@@ -96,7 +100,7 @@ void publish_dust(){
 
     root.printTo(msg);
     //토픽 발행
-    client.publish("living/dust/info",msg);
+    client.publish("iot3/living/dust/",msg);
 }
 
 // void publish2(){
@@ -113,14 +117,13 @@ void publish_dust(){
 //   client.publish("inner/DHT/info", data);
 // }
 void setup() {
-
-  Serial.begin(9600);
+  com.init();
   dht.begin();
   wifi.init(ssid,password);
   mqtt_init();
   pinMode(DUST_PIN, INPUT);
   pinMode(13,OUTPUT);
-
+  
   com.setInterval(2000,publish);
   
 }
@@ -128,18 +131,21 @@ void loop() {
   mainwork();
   if(!client.connected()){//재접속 검사
          reconnect();
-    }
+  }
   com.run();
+  
 }
 
 void mainwork(){
   work();
   dust_check();
+  LCD();
 }
 
 void publish(){
-    publish_DHT();
-    publish_dust();
+  if(I==1){publish_DHT();I=2;}
+  else if(I==2){publish_dust();I=1;}
+    //else if(I==3){LCD();I==1;}
 }
 
 void work(){
