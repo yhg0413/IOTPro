@@ -22,7 +22,8 @@ AltSoftSerial softSerial(4, 5); //RX, TX
 
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
-const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+// const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+const char mqtt_server[] = "192.168.0.138";
 
 //MQTT용 WiFi 클라이언트 객체초기화
 WiFiEspClient espClient;
@@ -84,7 +85,7 @@ void publish_DHT(){
 
     root.printTo(msg);
     //토픽 발행
-    client.publish("iot3/living/DHT/", msg);
+    client.publish("iot3/living/dht", msg);
 }
 
 void LCD(){
@@ -100,7 +101,7 @@ void publish_dust(){
 
     root.printTo(msg);
     //토픽 발행
-    client.publish("iot3/living/dust/",msg);
+    client.publish("iot3/living/dust",msg);
 }
 
 // void publish2(){

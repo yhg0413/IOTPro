@@ -22,8 +22,8 @@ SoftwareSerial softSerial(4, 5); //RX, TX
 
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
-const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
-
+// const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+const char mqtt_server[] = "192.168.0.138";
 //MQTT용 WiFi 클라이언트 객체초기화
 WiFiEspClient espClient;
 PubSubClient client(espClient);
@@ -118,12 +118,12 @@ void publish_water(){
 
     root["wat_s"] = waterState;
 
-    Serial.print("Json data : ");
+    //Serial.print("Json data : ");
     
     root.printTo(msg);
     //Serial.println(msg);
     //토픽 발행
-    client.publish("iot3/toilet/water/", msg);
+    client.publish("iot3/toilet/water", msg);
 }
 void publish_PIR(){
     char msg[15];
@@ -133,12 +133,12 @@ void publish_PIR(){
     A = (PIRState!=0);
     root["pir_s"] = A;
 
-    Serial.print("Json data : ");
+    //Serial.print("Json data : ");
     
     root.printTo(msg);
     //Serial.println(msg);
     //토픽 발행
-    client.publish("iot3/toilet/PIR/", msg);
+    client.publish("iot3/toilet/pir", msg);
 }
 void publish_vib(){
     char msg[15];
@@ -148,12 +148,12 @@ void publish_vib(){
     A = (vibState!=0);
     root["vib_s"] = A;
 
-    Serial.print("Json data : ");
+    //Serial.print("Json data : ");
     
     root.printTo(msg);
     //Serial.println(msg);
     //토픽 발행
-    client.publish("iot3/toilet/vib/", msg);
+    client.publish("iot3/toilet/vib", msg);
 }
 
 void publish(){
@@ -198,7 +198,7 @@ void setup(){
     pinMode(FLOWSENSORPIN,INPUT);
     digitalWrite(FLOWSENSORPIN,1);
     useInterrupt(true);
-    timer.setInterval(2000,publish);
+    timer.setInterval(3000,publish);
     timer.setInterval(1951,check);
 }
 

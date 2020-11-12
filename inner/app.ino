@@ -14,7 +14,8 @@ AltSoftSerial softSerial(4, 5); //RX, TX
 int I = 1;
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
-const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+// const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+const char mqtt_server[] = "192.168.0.138";
 
 //MQTT용 WiFi 클라이언트 객체초기화
 WiFiEspClient espClient;
@@ -33,8 +34,8 @@ void callback(char* topic, byte* payload, unsigned int length){
     //     digitalWrite(13,HIGH);
     // }
 
-    Serial.print(topic);
-    Serial.print(" : ");
+    //Serial.print(topic);
+   // Serial.print(" : ");
     Serial.println(message);
     
 }
@@ -57,8 +58,8 @@ void reconnect(){
         //    client.subscribe("inner/+/info",1); //구독 신청
         }
         else{
-            Serial.print("failed, rc=");
-            Serial.print(client.state());
+            //Serial.print("failed, rc=");
+            //Serial.print(client.state());
             Serial.println(" try again in 5 seconds");
             delay(5000);
         }
@@ -84,7 +85,7 @@ void publish_Arduino_Rain(){
     
     Serial.println(msg);
     //토픽 발행
-    client.publish("iot3/inner/ArduRain/info/", msg);
+    client.publish("iot3/inner/ArduRain/info", msg);
 }
 void publish_Rain(){
     char msg[15];
@@ -93,12 +94,12 @@ void publish_Rain(){
 
     root["rs"] = digitalRead(10);
 
-    Serial.print("Json data : ");
+    //Serial.print("Json data : ");
     
     root.printTo(msg);
-    Serial.println(msg);
+    //Serial.println(msg);
     //토픽 발행
-    client.publish("iot3/inner/Rain/", msg);
+    client.publish("iot3/inner/rain", msg);
 }
 
 void publish(){

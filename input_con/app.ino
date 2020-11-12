@@ -16,13 +16,13 @@ int LEDState =0 ;
 SimpleTimer timer;
 PWMServo innerWindow;
 PWMServo livingWindow;
-PWMServo door;
 AltSoftSerial softSerial(4, 5); //RX, TX
 int I = 0;
 int start = 0;
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
-const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+// const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+const char mqtt_server[] = "192.168.0.138";
 
 //MQTT용 WiFi 클라이언트 객체초기화
 WiFiEspClient espClient;
@@ -50,7 +50,7 @@ void callback(char* topic, byte* payload, unsigned int length){
     if(strcmp("All_State", message)==0){
         start = 0;
     }
-    else if(strcmp("iot3/inner/ArduRain/info/", topic)==0){
+    else if(strcmp("iot3/inner/ArduRain/info", topic)==0){
         if(strcmp("1", message)==0){
             innerWindow.write(100);
             livingWindow.write(100);
@@ -59,25 +59,30 @@ void callback(char* topic, byte* payload, unsigned int length){
             start = 0;
         }
     }
-    else if(strcmp("iot3/inner/Led/info/",topic)==0){
+    else if(strcmp("iot3/inner/led/info",topic)==0){
         analogWrite(6,atoi(message));
         I=4;
         LEDState = (atoi(message)!=0);
     }
-    else if(strcmp("iot3/inner/Window/info/",topic)==0){
+    else if(strcmp("iot3/inner/window/info",topic)==0){
+        livingWindow.detach();
+        innerWindow.attach(10);
         innerWindow.write(map(atoi(message),0,255,100,0));
+        
         I=1;
         innerwindowState = (atoi(message)!=0);
     }
-    else if(strcmp("iot3/living/Window/info/",topic)==0){
-        livingWindow.write(map(atoi(message),0,255,100,180));
+    else if(strcmp("iot3/living/window/info",topic)==0){
+        innerWindow.detach();
+        livingWindow.attach(9);
+        livingWindow.write(map(atoi(message),0,255,100,0));
         I=2;
         livingwindowState = (atoi(message)!=0);
     }
-    else if(strcmp("iot3/door/info/",topic)==0){
-        door.write(map(atoi(message),0,255,100,180));
+    else if(strcmp("iot3/living/door/info",topic)==0){
+        digitalWrite(11,atoi(message));
         I=3;
-        doorState = (atoi(message)!=0);
+        doorState = (atoi(message));
     }
 
 
@@ -102,7 +107,7 @@ void reconnect(){
         //아닐경우 EEPROM에다가 번호등록가능 보통은 시리얼번호 사용
             Serial.println("connected");
             //subscriber로 등록
-            client.subscribe("iot3/+/+/info/",1); //구독 신청
+            client.subscribe("iot3/+/+/info",1); //구독 신청
         }
         else{
             //Serial.print("failed, rc=");
@@ -134,35 +139,35 @@ void publish_Window(){
     else if(I==2)root["ws"] = livingwindowState;
     else if(I==3)root["door"] = doorState;
     else if(I==4)root["led"] = LEDState;
-    Serial.print("Json data : ");
+    //Serial.print("Json data : ");
     
     root.printTo(msg);
     //Serial.println(msg);
     //토픽 발행
-    if(I==1)client.publish("iot3/inner/Window/", msg);
-    else if(I==2)client.publish("iot3/living/Window/", msg);
-    else if(I==3)client.publish("iot3/door/", msg);
-    else if(I==4)client.publish("iot3/inner/Led/", msg);
+    if(I==1)client.publish("iot3/inner/window", msg);
+    else if(I==2)client.publish("iot3/living/window", msg);
+    else if(I==3)client.publish("iot3/door", msg);
+    else if(I==4)client.publish("iot3/inner/led", msg);
 }
+
 
 
 void setup(){
     Serial.begin(9600);
+    pinMode(6,OUTPUT);
+    pinMode(11,OUTPUT);
     wifi.init(ssid,password);
     mqtt_init();
-    pinMode(6,OUTPUT);
-    innerWindow.attach(9);
-    livingWindow.attach(10);
-    door.attach(11);
+    
+    innerWindow.attach(10);
+    livingWindow.attach(9);
     innerWindow.write(100);
     livingWindow.write(100);
-    door.write(100);
     //timer.setInterval(1500,add);
 }
 
 
-void loop(){
-    
+void loop(){;
     if(!client.connected()){//재접속 검사
          reconnect();
     }
@@ -181,5 +186,4 @@ void loop(){
         else if(I==3){publish_Window(); I=0;}
         else if(I==4){publish_Window(); I=0;}
     }
-    
 }

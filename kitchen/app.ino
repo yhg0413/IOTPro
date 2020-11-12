@@ -15,7 +15,8 @@ SimpleTimer timer;
 AltSoftSerial softSerial(4, 5); //RX, TX
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
-const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+// const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+const char mqtt_server[] = "192.168.0.138";
 
 WiFiEspClient espClient;
 PubSubClient client(espClient);
@@ -65,8 +66,8 @@ void reconnect(){
         //    client.subscribe("inner/+/info",1); //구독 신청
         }
         else{
-            Serial.print("failed, rc=");
-            Serial.print(client.state());
+            //Serial.print("failed, rc=");
+            //Serial.print(client.state());
             Serial.println(" try again in 5 seconds");
             delay(5000);
         }
@@ -77,7 +78,6 @@ void gasCheck(){
     if (GasValue >= 500) //500보다 크거나 같을시에
     {
         digitalWrite(buzPin, HIGH); //LED의 빛이 나옵니다.
-        digitalWrite(7, HIGH);
     }
     else
     {
@@ -89,7 +89,7 @@ void gasCheck(){
 }
 void fireCheck(){
     FireValue = analogRead(firePin);
-    if(FireValue<=1000){
+    if(FireValue<=500){
         digitalWrite(buzPin,HIGH);
     }
     else{
@@ -100,24 +100,28 @@ void fireCheck(){
 }
 
 void publish_Gas(){
-    char msg[12];
-    StaticJsonBuffer<12> jsonBuffer;
+    char msg[15];
+    int A = 0;
+    StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
-    root["gas"]= (GasValue >= 500);
+    A = (GasValue >= 500);
+    root["gas"]= A;
 
     root.printTo(msg);
     //토픽 발행
-    client.publish("iot3/kitchen/Gas/", msg);
+    client.publish("iot3/kitchen/gas", msg);
 }
 void publish_Fire(){
-    char msg[12];
-    StaticJsonBuffer<12> jsonBuffer;
+    char msg[15];
+    int A = 0;
+    StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
-    root["fire"] = (FireValue<=1000);
+    A = (FireValue<=500);
+    root["fire"] = A;
 
     root.printTo(msg);
     //토픽 발행
-    client.publish("iot3/kitchen/Fire/",msg);
+    client.publish("iot3/kitchen/fire",msg);
 }
 void publish(){
     publish_Fire();
@@ -129,7 +133,8 @@ void setup()
     wifi.init(ssid,password);
     mqtt_init();
     pinMode(buzPin, OUTPUT); //핀의 LED를 빛을 내주는 OUTPUT의 단자로 활용합니다.
-    pinMode(7,OUTPUT);)
+    pinMode(7,OUTPUT);
+    digitalWrite(7,LOW);
     timer.setInterval(2000,publish);
 }
 
