@@ -65,7 +65,7 @@ void callback(char* topic, byte* payload, unsigned int length){
         LEDState = (atoi(message)!=0);
     }
     else if(strcmp("iot3/inner/Window/info/",topic)==0){
-        innerWindow.write(map(atoi(message),0,255,100,180));
+        innerWindow.write(map(atoi(message),0,255,100,0));
         I=1;
         innerwindowState = (atoi(message)!=0);
     }
