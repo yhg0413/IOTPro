@@ -20,10 +20,10 @@ SoftwareSerial softSerial(4, 5); //RX, TX
 
 
 
-const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
-const char password[] = "12345678"; // 비밀번호
+const char ssid[] = "awon"; // 네트워크 ssid
+const char password[] = "whddkwhddk"; // 비밀번호
 // const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
-const char mqtt_server[] = "192.168.0.138";
+const char mqtt_server[] = "172.20.10.8";
 //MQTT용 WiFi 클라이언트 객체초기화
 WiFiEspClient espClient;
 PubSubClient client(espClient);

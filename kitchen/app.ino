@@ -13,10 +13,17 @@ char windowState = 0;
 
 SimpleTimer timer;
 AltSoftSerial softSerial(4, 5); //RX, TX
+// const char ssid[] = "awon"; // 네트워크 ssid
+// const char password[] = "whddkwhddk"; // 비밀번호
+// // const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
+// const char mqtt_server[] = "172.20.10.8";
+
+
 const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
 const char password[] = "12345678"; // 비밀번호
-// const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
-const char mqtt_server[] = "192.168.0.138";
+const char mqtt_server[] = "192.168.0.138";//->서버주소 = 내 pc주소
+
+
 
 WiFiEspClient espClient;
 PubSubClient client(espClient);
@@ -75,14 +82,15 @@ void reconnect(){
 }
 void gasCheck(){
     GasValue = analogRead(gasPin); //gasvalue는 gaspin의 값을 읽어옵니다.
-    if (GasValue >= 500) //500보다 크거나 같을시에
+    if (GasValue >= 300) //500보다 크거나 같을시에
     {
         digitalWrite(buzPin, HIGH); //LED의 빛이 나옵니다.
+        digitalWrite(7, LOW);
     }
     else
     {
         digitalWrite(buzPin, LOW); // 작을시에는 꺼집니다.
-        digitalWrite(7, HIGH);
+        digitalWrite(7,HIGH);
     }
     //Serial.print("GasValue=");
     //Serial.println(GasValue);
@@ -134,7 +142,7 @@ void setup()
     mqtt_init();
     pinMode(buzPin, OUTPUT); //핀의 LED를 빛을 내주는 OUTPUT의 단자로 활용합니다.
     pinMode(7,OUTPUT);
-    digitalWrite(7,LOW);
+    
     timer.setInterval(2000,publish);
 }
 

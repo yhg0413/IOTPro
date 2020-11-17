@@ -3,7 +3,7 @@
 #include <WifiUtil.h>
 #include <AltSoftSerial.h>
 #include <PWMServo.h>
-#include <ArduinoJson.h>
+#include <ArduinoJson.h>  
 
 
 WifiUtil wifi(4,5);
@@ -19,10 +19,10 @@ PWMServo livingWindow;
 AltSoftSerial softSerial(4, 5); //RX, TX
 int I = 0;
 int start = 0;
-const char ssid[] = "Campus7_Room3_2.4"; // 네트워크 ssid
-const char password[] = "12345678"; // 비밀번호
+const char ssid[] = "awon"; // 네트워크 ssid
+const char password[] = "whddkwhddk"; // 비밀번호
 // const char mqtt_server[] = "192.168.0.109";//->서버주소 = 내 pc주소
-const char mqtt_server[] = "192.168.0.138";
+const char mqtt_server[] = "172.20.10.8";
 
 //MQTT용 WiFi 클라이언트 객체초기화
 WiFiEspClient espClient;
@@ -50,19 +50,19 @@ void callback(char* topic, byte* payload, unsigned int length){
     if(strcmp("All_State", message)==0){
         start = 0;
     }
-    else if(strcmp("iot3/inner/ArduRain/info", topic)==0){
-        if(strcmp("1", message)==0){
-            innerWindow.write(100);
-            livingWindow.write(100);
-            innerwindowState=0;
-            livingwindowState = 0;
-            start = 0;
-        }
-    }
+    // else if(strcmp("iot3/inner/ArduRain/info", topic)==0){
+    //     if(strcmp("1", message)==0){
+    //         innerWindow.write(100);
+    //         livingWindow.write(100);
+    //         innerwindowState=0;
+    //         livingwindowState = 0;
+    //         start = 0;
+    //     }
+    // }
     else if(strcmp("iot3/inner/led/info",topic)==0){
         analogWrite(6,atoi(message));
         I=4;
-        LEDState = (atoi(message)!=0);
+        LEDState = atoi(message);
     }
     else if(strcmp("iot3/inner/window/info",topic)==0){
         livingWindow.detach();
@@ -70,17 +70,15 @@ void callback(char* topic, byte* payload, unsigned int length){
         innerWindow.write(map(atoi(message),0,255,100,0));
         
         I=1;
-        innerwindowState = (atoi(message)!=0);
     }
     else if(strcmp("iot3/living/window/info",topic)==0){
         innerWindow.detach();
         livingWindow.attach(9);
         livingWindow.write(map(atoi(message),0,255,100,0));
         I=2;
-        livingwindowState = (atoi(message)!=0);
     }
     else if(strcmp("iot3/living/door/info",topic)==0){
-        digitalWrite(11,atoi(message));
+        analogWrite(11,atoi(message));
         I=3;
         doorState = (atoi(message));
     }
@@ -135,8 +133,8 @@ void publish_Window(){
     StaticJsonBuffer<15> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    if(I==1)root["ws"] = innerwindowState;
-    else if(I==2)root["ws"] = livingwindowState;
+    if(I==1)root["ws"] = map(innerWindow.read(),100,0,0,255);
+    else if(I==2)root["ws"] = map(livingWindow.read(),100,0,0,255);
     else if(I==3)root["door"] = doorState;
     else if(I==4)root["led"] = LEDState;
     //Serial.print("Json data : ");
@@ -146,7 +144,7 @@ void publish_Window(){
     //토픽 발행
     if(I==1)client.publish("iot3/inner/window", msg);
     else if(I==2)client.publish("iot3/living/window", msg);
-    else if(I==3)client.publish("iot3/door", msg);
+    else if(I==3)client.publish("iot3/living/door", msg);
     else if(I==4)client.publish("iot3/inner/led", msg);
 }
 
@@ -167,7 +165,8 @@ void setup(){
 }
 
 
-void loop(){;
+void loop(){
+    
     if(!client.connected()){//재접속 검사
          reconnect();
     }
